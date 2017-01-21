@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">絵しりとり</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="undo_paint">1つもどる</string>
+    <string name="clear_paint">ぜんぶけす</string>
+    <string name="done_paint">かんせい!</string>
+    <string name="title_dialog_paint">タイトルを入力してね!</string>
+    <string name="OK_dialog_paint">OK</string>
+    <string name="cancel_dialog_paint">Cancel</string>
+</resources>

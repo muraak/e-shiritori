@@ -1,0 +1,49 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/back_tile_desk"
+    tools:context=".MainActivity">
+
+    <!-- ペイントする部分のViewはコードから生成します
+         理由：ペイントする画用紙の影をJavaで書いているから-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true" >
+
+        <Button android:id="@+id/btBackOfPaint"
+            android:text="@string/undo_paint"
+            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_margin="5dp"
+            android:background="@drawable/selector_bt_paint"
+            android:stateListAnimator="@null"
+            android:textSize="15sp"
+            android:textColor="@color/white"/>
+
+        <Button android:id="@+id/btClearOfPaint"
+            android:text="@string/clear_paint"
+            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_margin="5dp"
+            android:background="@drawable/selector_bt_paint"
+            android:stateListAnimator="@null"
+            android:textSize="15sp"
+            android:textColor="@color/white"/>
+
+        <Button android:id="@+id/btDoneOfPaint"
+            android:text="@string/done_paint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_margin="5dp"
+            android:background="@drawable/selector_bt_paint"
+            android:stateListAnimator="@null"
+            android:textSize="15sp"
+            android:textColor="@color/white"/>
+    </LinearLayout>
+
+</RelativeLayout>
