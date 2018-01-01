@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">絵しりとり</string>
+    <string name="app_name">えしりとり</string>
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
@@ -9,4 +9,5 @@
     <string name="title_dialog_paint">タイトルを入力してね!</string>
     <string name="OK_dialog_paint">OK</string>
     <string name="cancel_dialog_paint">Cancel</string>
+    <string name="show_previous_pictures">これまでのえをみる</string>
 </resources>

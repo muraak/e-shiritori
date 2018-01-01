@@ -9,10 +9,12 @@ import android.view.View;
 
 public class ShadowView extends View
 {
+	private int strokeWidth;
+	public ShadowView(Context context, int stroke_width)
 
-	public ShadowView(Context context)
 	{
 		super(context);
+		strokeWidth = stroke_width;
 	}
 	
 	@Override
@@ -23,18 +25,27 @@ public class ShadowView extends View
 	
 	private void dropShadow(Canvas canvas)
 	{
-		Paint paint = new Paint();
-		paint.setAntiAlias(true);
-		paint.setARGB(128, 0, 0, 0);
-		paint.setStyle(Paint.Style.STROKE);
-		paint.setStrokeWidth(5);
-		BlurMaskFilter maskfilter = new BlurMaskFilter(3, BlurMaskFilter.Blur.NORMAL);
-		paint.setMaskFilter(maskfilter);
-		
-		Path path = new Path();
-		path.moveTo(-4, this.getHeight() - 8);
-		path.lineTo(this.getWidth() + 4, this.getHeight() - 8);
-		canvas.drawPath(path, paint);
+//		BlurMaskFilter maskfilter = new BlurMaskFilter(strokeWidth / 2, BlurMaskFilter.Blur.NORMAL);
+//		paint.setMaskFilter(maskfilter);
+
+		for(int i = 0; i < strokeWidth; i++)
+		{
+			Paint paint = new Paint();
+			paint.setAntiAlias(true);
+			paint.setStyle(Paint.Style.STROKE);
+			paint.setStrokeWidth(1);
+			paint.setARGB(((64/strokeWidth) * i), 0, 0, 0);
+
+			Path path = new Path();
+			// under shadow
+			path.moveTo(strokeWidth, this.getHeight() - i);
+			path.lineTo(this.getWidth() - i, this.getHeight() - i);
+			// right shadow
+			path.lineTo(this.getHeight() - i, strokeWidth);
+
+
+			canvas.drawPath(path, paint);
+		}
 	}
 
 }

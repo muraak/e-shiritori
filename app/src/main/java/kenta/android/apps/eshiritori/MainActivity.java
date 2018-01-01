@@ -1,13 +1,15 @@
 package kenta.android.apps.eshiritori;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Point;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -18,26 +20,69 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.lang.reflect.Method;
+
 
 public class MainActivity extends Activity
 {
+    ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
-        super.onCreate(savedInstanceState);
+        super.setContentView(R.layout.painting);
 
-        this.setPaintingWindow();
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle("ロード中…");
+        progressDialog.setMessage("ちょっとまってね！");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.show();
+
+        final Handler handler =  new Handler();
+        Thread thread = new Thread(new Runnable()
+        {
+            @Override
+            public void run() {
+
+                final RelativeLayout rlPaper = new RelativeLayout(getApplicationContext());
+
+                RelativeLayout.LayoutParams lp;
+
+                ShadowView shadowView = makeShadowView();
+                lp = makeLayoutParamForShadowView();
+                rlPaper.addView(shadowView, lp);
+
+                PaintView paintView  = makePaintView();
+                lp = makeLayoutParamsForPaintView(paintView);
+                rlPaper.addView(paintView, lp);
+
+                handler.post(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        RelativeLayout.LayoutParams lp
+                                = makeLayoutParamsForRlPaper();
+                        addContentView(rlPaper, lp);
+                        progressDialog.dismiss();
+                    }
+                });
+            }
+        });
+
+        thread.start();
+
+        super.onCreate(savedInstanceState);
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event)
     {
         /*********************************************
-         * キーが押されたときに呼ばれるメソッドです. *
-         * 何か処理を行ったときは"true"を返し        *
-         * 何もしなかったときは"false"を返す         *
-         * 決まりらしいです．                        *
+         * キーが押されたときに呼ばれるメソッドです.      *
+         * 何か処理を行ったときは"true"を返し           *
+         * 何もしなかったときは"false"を返す            *
+         * 決まりらしいです．                           *
          *********************************************/
 
         //戻るボタンが押されたときの処理
@@ -51,49 +96,64 @@ public class MainActivity extends Activity
         return false;
     }
 
-    private void setPaintingWindow()
+    private ShadowView makeShadowView()
     {
-        super.setContentView(R.layout.painting);
+        ShadowView shadowView = new ShadowView(this, (getDispSize().x / 80));
+        return shadowView;
+    }
 
-        PaintView paintView = new PaintView(this);
+    private PaintView makePaintView()
+    {
+        PaintView paint_view = new PaintView(this);
+        bindEventsToButtonsInPaintView(paint_view);
+        return paint_view;
+    }
 
+    private RelativeLayout.LayoutParams makeLayoutParamForShadowView()
+    {
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                getDispSize().x - (getDispSize().x / 40),
+                getDispSize().x - (getDispSize().x / 40));
+        lp.addRule(RelativeLayout.CENTER_HORIZONTAL);
+        lp.addRule(RelativeLayout.CENTER_VERTICAL);
+
+        return lp;
+    }
+
+    private RelativeLayout.LayoutParams makeLayoutParamsForPaintView(PaintView paintView)
+    {
+        //絵を描くビューを作成
+        setRepeatBackground(paintView, R.drawable.whitepaper);
+        RelativeLayout.LayoutParams lp
+                = new RelativeLayout.LayoutParams(
+                getDispSize().x - (getDispSize().x / 20),
+                getDispSize().x - (getDispSize().x / 20));
+        lp.addRule(RelativeLayout.CENTER_HORIZONTAL);
+        lp.addRule(RelativeLayout.CENTER_VERTICAL);
+
+        return lp;
+    }
+
+    private RelativeLayout.LayoutParams makeLayoutParamsForRlPaper()
+    {
+        return new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
+                RelativeLayout.LayoutParams.MATCH_PARENT);
+    }
+
+    private void bindEventsToButtonsInPaintView(PaintView paintView)
+    {
         // ペイント画面のボタンにイベント割り当て
         // コンストラクタでpaintViewを渡す必要があるので
         // 無名クラスでのリスナ設定は使用しません．
-        Button btBack  = (Button) this.findViewById(R.id.btBackOfPaint);
-        Button btClear = (Button) this.findViewById(R.id.btClearOfPaint);
-        Button btDone  = (Button) this.findViewById(R.id.btDoneOfPaint);
+        Button btBack         = (Button) this.findViewById(R.id.btBackOfPaint);
+        Button btClear        = (Button) this.findViewById(R.id.btClearOfPaint);
+        Button btDone         = (Button) this.findViewById(R.id.btDoneOfPaint);
+        Button btShowPrevious = (Button) this.findViewById(R.id.btShowPreviousPictures);
 
-        btBack .setOnClickListener(new BtBackOfPaintListener(paintView));
-        btClear.setOnClickListener(new BtClearOfPaintListener(paintView));
-        btDone .setOnClickListener(new BtDoneOfPaintListener(this, paintView));
-
-        // 画面の横幅を取得する
-        int dispWidth_px = getDispSize().x;
-
-        // 絵を描く紙とその影から成るレイアウト
-        // サイズは画面横幅の正方形と等しい(影は16px下に長い)
-        RelativeLayout rlPaper = new RelativeLayout(this);
-
-        //影ビューを作成
-        ShadowView shadowView = new ShadowView(this);
-        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
-                dispWidth_px, dispWidth_px + 16);
-        lp.addRule(RelativeLayout.CENTER_HORIZONTAL);
-        lp.addRule(RelativeLayout.CENTER_VERTICAL);
-        rlPaper.addView(shadowView, lp);
-
-        //絵を描くビューを作成
-        setRepeatBackground(paintView, R.drawable.whitepaper);
-        lp = new RelativeLayout.LayoutParams(dispWidth_px, dispWidth_px);
-        lp.addRule(RelativeLayout.CENTER_HORIZONTAL);
-        lp.addRule(RelativeLayout.CENTER_VERTICAL);
-        rlPaper.addView(paintView, lp);
-
-        lp = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.MATCH_PARENT);
-
-        super.addContentView(rlPaper, lp);
+        btBack        .setOnClickListener(new BtBackOfPaintListener(paintView));
+        btClear       .setOnClickListener(new BtClearOfPaintListener(paintView));
+        btDone        .setOnClickListener(new BtDoneOfPaintListener(this, paintView));
+        btShowPrevious.setOnClickListener(new BtShowPreviousPaintsListener(this, paintView));
     }
 
     public void setRepeatBackground(View v, int id)
@@ -129,6 +189,36 @@ public class MainActivity extends Activity
         return size;
     }
 
+    // カスタムしたトーストでメッセージを表示
+    public void makeCustomToast(String message , Context context)
+    {
+        Toast result = new Toast(context);
+
+        LayoutInflater inflater = (LayoutInflater)
+                context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        View view = inflater.inflate(R.layout.custom_toast, null);
+
+        TextView textView = (TextView) view.findViewById(R.id.message);
+        textView.setText(message);
+
+        result.setView(view);
+        // 表示時間
+        result.setDuration(Toast.LENGTH_SHORT/*2sec*/);
+        // 位置調整
+        result.setGravity(Gravity.CENTER, 0, 180);
+
+        result.show();
+    }
+
+    private void clearDB()
+    {
+        DBHelper helper = new DBHelper(this);
+        helper.clear();
+        helper.close();
+        super.onDestroy();
+    }
+
     private class BtBackOfPaintListener implements View.OnClickListener
     {
         private PaintView mPaintView;
@@ -141,7 +231,7 @@ public class MainActivity extends Activity
         @Override
         public void onClick(View v)
         {
-            mPaintView.redo();
+            mPaintView.undo();
         }
     }
 
@@ -179,7 +269,6 @@ public class MainActivity extends Activity
             if(mPaintView.isWhite())
             {
                 makeCustomToast("何か絵を描いてね!", mContext);
-//                Log.d("KMShiritori", "Canvas was empty!");
                 return;
             }
 
@@ -196,33 +285,45 @@ public class MainActivity extends Activity
         }
     }
 
-    // カスタムしたトーストでメッセージを表示
-    public void makeCustomToast(String message , Context context)
+    private class BtShowPreviousPaintsListener implements View.OnClickListener
     {
-        Toast result = new Toast(context);
+        Context mContext;
+        PaintView mPaintView;
 
-        LayoutInflater inflater = (LayoutInflater)
-                context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        BtShowPreviousPaintsListener(Context context, PaintView paint_view)
+        {
+            mContext = context;
+            mPaintView = paint_view;
+        }
 
-        View view = inflater.inflate(R.layout.custom_toast, null);
+        @Override
+        public void onClick(View view)
+        {
+            backToListOfPainting();
+        }
 
-        TextView textView = (TextView) view.findViewById(R.id.message);
-        textView.setText(message);
+        private void backToListOfPainting()
+        {
+            final Intent intent = new Intent();
+            intent.setClassName("kenta.android.apps.eshiritori",
+                    "kenta.android.apps.eshiritori.AnswerActivity");
 
-        result.setView(view);
-        // 表示時間
-        result.setDuration(Toast.LENGTH_SHORT/*2sec*/);
-        // 位置調整
-        result.setGravity(Gravity.CENTER, 0, 180);
+            final ProgressDialog progressDialog = new ProgressDialog(mContext);
+            progressDialog.setTitle("セーブ中…");
+            progressDialog.setMessage("ちょっとまってね！");
+            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            progressDialog.show();
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    mPaintView.save(mContext);
+                    progressDialog.dismiss();
+                    startActivity(intent);
+                    finish();
+                }
+            });
 
-        result.show();
-    }
-
-    private void clearDB()
-    {
-        DBHelper helper = new DBHelper(this);
-        helper.clear();
-        helper.close();
-        super.onDestroy();
+            thread.start();
+        }
     }
 }

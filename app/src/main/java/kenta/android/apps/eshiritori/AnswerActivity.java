@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Point;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -39,6 +42,25 @@ public class AnswerActivity extends Activity
         sv.addView(ll);
 
         DBHelper helper = new DBHelper(this);
+
+        // 絵が空だったら以下の処理はキャンセル
+        if(helper.getRecordCount() == 0)
+        {
+            LinearLayout lltmp = new LinearLayout(this);
+            lltmp.setOrientation(LinearLayout.HORIZONTAL);
+            lltmp.setGravity(Gravity.CENTER_HORIZONTAL);
+            lltmp.setPadding(0, 20, 0, 0);
+
+            Button btAnswer = new Button(this);
+            Button btResult = new Button(this);
+            setButtonOfAnswerWindow(btAnswer, new BtAnswerOnClickListener(), "絵を描く", lltmp, 2);
+            setButtonOfAnswerWindow(btResult, new BtResultOnClickListener(), "答え合わせ", lltmp, 2);
+
+            ll.addView(lltmp);
+
+            return;
+        }
+
         ArrayList<Integer> ids = new ArrayList<>(5);
         ArrayList<Bitmap> pictures = new ArrayList<>(5);
 
@@ -63,7 +85,9 @@ public class AnswerActivity extends Activity
             ivTmp.setImageBitmap(pic);
             ivTmp.setScaleType(ImageView.ScaleType.FIT_XY);
             LinearLayout.LayoutParams lp =
-                    new LinearLayout.LayoutParams(400, 400);
+                    new LinearLayout.LayoutParams(
+                            getDispSize().x - (getDispSize().x / 20),
+                            getDispSize().x - (getDispSize().x / 20));
             lp.topMargin = 20;
             lp.gravity = Gravity.CENTER_HORIZONTAL;
             ivTmp.setLayoutParams(lp);
@@ -135,6 +159,23 @@ public class AnswerActivity extends Activity
         bt.setTextColor(Color.WHITE);
         bt.setLayoutParams(lp);
         l.addView(bt);
+    }
+
+    private Point getDispSize()
+    {
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+
+        if (Build.VERSION.SDK_INT >= 14)
+        {
+            display.getSize(size);
+        } else
+        {
+            size.x = display.getWidth();
+            size.y = display.getHeight();
+        }
+
+        return size;
     }
 
     private class BtOlderOnClickListener implements View.OnClickListener

@@ -1,40 +1,40 @@
 package kenta.android.apps.eshiritori;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
 
-public class PaintView extends View implements Serializable
+class PaintView extends View implements Serializable
 {
     // SerializableインターフェースはMainActivityオブジェクトからDialogOfPaintingオブジェクトへ
     // このクラスのオブジェクトを渡すために実装しています
-
-    private static final int SIZE_OF_QUEUE = 3; // Undo用のキューのサイズ
 
     private Paint mPaint;
     private Path mCurtPath;                 // 今描いている線を保存しておく
     private float mOldX = 0;                // 一つ前のmCurtPathの終点を保存する
     private float mOldY = 0;                // 一つ前のmCurtPathの終点を保存する
-    private ArrayList<Bitmap> mBitmapQueue; // Redo用にbitmapを保存しておくキュー
-    public Bitmap mInitialBitmap;           // 最初のcanvasの状態を保存する
-    private Bitmap mOldBitmap;              // 一番戻った時の状態のbitmapを保存する
-    private boolean mIsFirst = true;        // 初期状態をキャプチャするのに使う
+
+	private PictureHistory pictureHistory;
 
     public PaintView(Context context)
     {
         super(context);
         mPaint = new Paint();
-        mBitmapQueue = new ArrayList<Bitmap>();
         mCurtPath = new Path();
-
+		pictureHistory = new PictureHistory();
+		pictureHistory.load(context);
         setParamsToPaint(mPaint);
     }
 
@@ -50,59 +50,37 @@ public class PaintView extends View implements Serializable
 
     public Bitmap getCurrentCanvasBitmap()
     {
-        int enqueued_recently = mBitmapQueue.size() - 1;
-
-        if (!mBitmapQueue.isEmpty())
-            return mBitmapQueue.get(enqueued_recently);
-        else
-            return null;
+		if(pictureHistory.isLatestEmptyPicture())
+			return  null;
+		else
+			return pictureHistory.getLatest();
     }
 
     public boolean isWhite()
-    {
-        /* キャンバスに何も描かれていない(初期状態と等しい)かどうかを *
-         * チェックして返すメソッド(空→true, 空じゃない→false)     */
-
-        boolean result; // 返り値
-
-        if(this.getCurrentCanvasBitmap() == null
-                || this.getCurrentCanvasBitmap() == mInitialBitmap)
-            result = true;
-        else
-            result = false;
-
-        return result;
+	{
+		return pictureHistory.isLatestEmptyPicture();
     }
 
 	@Override
 	protected void onDraw(Canvas canvas)
 	{
-		//キューにある最新のbitmapを描画する
-		if(!mBitmapQueue.isEmpty())
-		{
-			int enqueued_recently = mBitmapQueue.size() - 1; 
-			canvas.drawBitmap(mBitmapQueue.get(enqueued_recently), 0, 0, null);
-		}
-		else if(mOldBitmap != null)
-		{
-			canvas.drawBitmap(mOldBitmap, 0, 0, null);
-		}
-		//今描いている線を描画する
+		if(!pictureHistory.isNotInitialized())
+			canvas.drawBitmap(pictureHistory.getLatest(), 0, 0, null);
+
 		if(!mCurtPath.isEmpty())
-		{
 			canvas.drawPath(mCurtPath, mPaint);
-		}
 	}
 
 	@Override
 	public boolean onTouchEvent(MotionEvent e)
-	{	
-		if(mIsFirst)
+	{
+		if(pictureHistory.isNotInitialized())
 		{
-			this.setInitState();
-			mIsFirst = false;
+			setDrawingCacheEnabled(true);
+			pictureHistory.initialize(Bitmap.createBitmap(getDrawingCache()));
+			setDrawingCacheEnabled(false);
 		}
-		
+
 		if(e.getAction() == MotionEvent.ACTION_DOWN)
 		{
 			mCurtPath.moveTo(e.getX(), e.getY());
@@ -137,7 +115,7 @@ public class PaintView extends View implements Serializable
 			
 			//現在のcanvasの状態をキャプチャしてQUEUEに挿入
 			setDrawingCacheEnabled(true);
-			enqueueBitmap(Bitmap.createBitmap(getDrawingCache()));
+			pictureHistory.putLatest(Bitmap.createBitmap(getDrawingCache()));
 			setDrawingCacheEnabled(false);
 			
 			mCurtPath.reset();
@@ -146,51 +124,156 @@ public class PaintView extends View implements Serializable
 		return true;
 	}
 	
-	private void enqueueBitmap(Bitmap bmpToAdd)
+	public void undo()
 	{
-		//キューのサイズを超えたら一番古い要素[0]を削除してサイズを一定に保つ
-		mBitmapQueue.add(bmpToAdd);
-
-		if(mBitmapQueue.size() > SIZE_OF_QUEUE)
-		{
-			mOldBitmap = mBitmapQueue.get(0);
-			mBitmapQueue.remove(0);
-		}
-	}
-	
-	private void dequeueBitmap()
-	{
-		if(!mBitmapQueue.isEmpty())
-		{
-			int END_OF_QUEUE = mBitmapQueue.size() - 1;
-			mBitmapQueue.remove(END_OF_QUEUE);
-		}
-	}
-	
-	public void redo()
-	{
-		/*
-		 * キューから最新のbitmapを削除する
-		 */
-		dequeueBitmap();
+		pictureHistory.backToPrev();
 		super.invalidate();
-		
 	}
 	
 	public void clear()
 	{
-		//初期状態のキャンパスをENQUEUE
-		if(mInitialBitmap != null)
-			enqueueBitmap(mInitialBitmap);
+		pictureHistory.putEmpty();
 		//更新
 		super.invalidate();
 	}
-	
-	private void setInitState()
+
+	public void save(Context context)
 	{
-		//現在のcanvasの状態をキャプチャしてInitBitmapに保存
-		setDrawingCacheEnabled(true);
-		mInitialBitmap = Bitmap.createBitmap(getDrawingCache());
-		setDrawingCacheEnabled(false);
+		if(pictureHistory != null)
+			pictureHistory.save(context);
+	}
+}
+
+class PictureHistory
+{
+	private static final int MAX_HISTORY_SIZE = 4;
+
+	private Bitmap emptyPicture;
+
+	private ArrayList<Bitmap> histories;
+
+	public PictureHistory()
+	{
+		histories = new ArrayList<>();
+	}
+
+	public boolean isNotInitialized()
+	{
+		return (emptyPicture == null);
+	}
+
+	public void initialize(Bitmap empty_picture)
+	{
+		emptyPicture = empty_picture;
+		if(histories.size() == 0)
+		{
+			putEmpty();
+		}
+	}
+
+	public void putLatest(Bitmap latest_picture) {
+		histories.add(latest_picture);
+
+		if (histories.size() > MAX_HISTORY_SIZE) {
+			histories.remove(0);
+		}
+	}
+
+	public void putEmpty() {
+		putLatest(emptyPicture);
+	}
+
+	public Bitmap getLatest() {
+		if (histories.size() == 0) {
+			return emptyPicture;
+		} else {
+			return histories.get(histories.size() - 1);
+		}
+	}
+
+	public void backToPrev() {
+		if (histories.size() > 1) {
+			histories.remove(histories.size() - 1);
+		}
+	}
+
+	public boolean isLatestEmptyPicture() {
+		return (getLatest() == emptyPicture);
+	}
+
+	public void save(Context context)
+	{
+		if(getLatest() == emptyPicture)
+		{
+			return;
+		}
+
+		if(emptyPicture != null)
+			saveBitmapToShrPref(context, emptyPicture, "empty");
+
+		if(histories.size() > 0)
+		{
+			for(int i = 0; i < histories.size(); i++)
+			{
+				saveBitmapToShrPref(context, histories.get(i), "histories" + i);
+			}
+		}
+	}
+
+	private void saveBitmapToShrPref(Context context, Bitmap bitmap, String key)
+	{
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+
+		String bitmapStr = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
+
+		SharedPreferences pref
+				= context.getSharedPreferences("history", Context.MODE_PRIVATE);
+		SharedPreferences.Editor editor = pref.edit();
+		editor.putString(key, bitmapStr);
+		editor.apply();
+	}
+
+	public void load(Context context)
+	{
+		Bitmap empty_picture = loadBitmapFromShrPref(context, "empty");
+		if(empty_picture != null)
+			emptyPicture = empty_picture;
+
+		for(int i = 0; i < MAX_HISTORY_SIZE; i++)
+		{
+			Bitmap picture = loadBitmapFromShrPref(context, "histories" + i);
+
+			if (picture == null)
+			{
+				break;
+			}
+
+			putLatest(picture);
+		}
+
+		clear(context);
+	}
+
+	private Bitmap loadBitmapFromShrPref(Context context, String key)
+	{
+		SharedPreferences pref = context.getSharedPreferences("history", Context.MODE_PRIVATE);
+		String s = pref.getString(key, "");
+		if (!s.equals(""))
+		{
+			byte[] b = Base64.decode(s, Base64.DEFAULT);
+			return BitmapFactory.decodeByteArray(b, 0, b.length).copy(Bitmap.Config.ARGB_8888, true);
+		}
+		else
+		{
+			return null;
+		}
+	}
+
+	private void clear(Context context)
+	{
+		SharedPreferences pref = context.getSharedPreferences("history", Context.MODE_PRIVATE);
+		pref.edit().clear().apply();
 	}
 }
