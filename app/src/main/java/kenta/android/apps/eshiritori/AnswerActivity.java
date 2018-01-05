@@ -25,14 +25,21 @@ import java.util.ArrayList;
  */
 public class AnswerActivity extends Activity
 {
+    enum Mode
+    {
+        Normal,
+        ShowAnswer,
+        ShowHint
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        this.setWindow(false, 0);
+        this.setWindow(Mode.Normal, 0);
     }
 
-    private void setWindow(boolean isCheckMode, int page_number)
+    private void setWindow(Mode mode, int page_number)
     {
         ScrollView sv = new ScrollView(this);
         sv.setBackgroundColor(getResources().getColor(R.color.oliveDrab));
@@ -46,17 +53,23 @@ public class AnswerActivity extends Activity
         // 絵が空だったら以下の処理はキャンセル
         if(helper.getRecordCount() == 0)
         {
-            LinearLayout lltmp = new LinearLayout(this);
-            lltmp.setOrientation(LinearLayout.HORIZONTAL);
-            lltmp.setGravity(Gravity.CENTER_HORIZONTAL);
-            lltmp.setPadding(0, 20, 0, 0);
+            LinearLayout ll_row1 = new LinearLayout(this);
+            ll_row1.setOrientation(LinearLayout.HORIZONTAL);
+            ll_row1.setGravity(Gravity.CENTER_HORIZONTAL);
+            ll_row1.setPadding(0, 20, 0, 0);
+
+            LinearLayout ll_row2 = new LinearLayout(this);
+            ll_row2.setOrientation(LinearLayout.HORIZONTAL);
+            ll_row2.setGravity(Gravity.CENTER_HORIZONTAL);
+            ll_row2.setPadding(0, 20, 0, 0);
 
             Button btAnswer = new Button(this);
             Button btResult = new Button(this);
-            setButtonOfAnswerWindow(btAnswer, new BtAnswerOnClickListener(), "絵を描く", lltmp, 2);
-            setButtonOfAnswerWindow(btResult, new BtResultOnClickListener(), "答え合わせ", lltmp, 2);
+            setButtonOfAnswerWindow(btAnswer, new BtAnswerOnClickListener(), "絵を描く", ll_row1, 2);
+            setButtonOfAnswerWindow(btResult, new BtChangeModeOnClickListener(Mode.ShowAnswer), "答え合わせ", ll_row2, 2);
 
-            ll.addView(lltmp);
+            ll.addView(ll_row1);
+            ll.addView(ll_row2);
 
             return;
         }
@@ -64,7 +77,7 @@ public class AnswerActivity extends Activity
         ArrayList<Integer> ids = new ArrayList<>(5);
         ArrayList<Bitmap> pictures = new ArrayList<>(5);
 
-        if(!isCheckMode)
+        if(mode == Mode.Normal)
             helper.getPictures(page_number, ids, pictures);
         else
             helper.getPicturesOfAnswer(page_number, ids, pictures);
@@ -93,10 +106,15 @@ public class AnswerActivity extends Activity
             ivTmp.setLayoutParams(lp);
             ll.addView(ivTmp);
 
-            if(isCheckMode)
+            if(mode == Mode.ShowAnswer || mode == Mode.ShowHint)
             {
                 TextView tvTmp = new TextView(this);
-                tvTmp.setText(helper.getTitle(ids.get(i)));
+
+                if(mode == Mode.ShowHint)
+                    tvTmp.setText(helper.getHiddenTitle(ids.get(i)));
+                else
+                    tvTmp.setText(helper.getTitle(ids.get(i)));
+
                 tvTmp.setTextSize(20);
                 tvTmp.setTextColor(getResources().getColor(R.color.saddleBrown));
                 lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -108,22 +126,51 @@ public class AnswerActivity extends Activity
             }
         }
 
-        LinearLayout lltmp = new LinearLayout(this);
-        lltmp.setOrientation(LinearLayout.HORIZONTAL);
-        lltmp.setGravity(Gravity.CENTER_HORIZONTAL);
-        lltmp.setPadding(0, 20, 0, 0);
+        LinearLayout ll_row1 = new LinearLayout(this);
+        ll_row1.setOrientation(LinearLayout.HORIZONTAL);
+        ll_row1.setGravity(Gravity.CENTER_HORIZONTAL);
+        ll_row1.setPadding(0, 20, 0, 0);
+
+        LinearLayout ll_row2 = new LinearLayout(this);
+        ll_row2.setOrientation(LinearLayout.HORIZONTAL);
+        ll_row2.setGravity(Gravity.CENTER_HORIZONTAL);
+        ll_row2.setPadding(0, 20, 0, 0);
 
         if(!isLastPage)
         {
             Button btOlder = new Button(this);
             setButtonOfAnswerWindow(btOlder,
-                    new BtOlderOnClickListener(isCheckMode, page_number), "←", lltmp, 1);
+                    new BtOlderOnClickListener(mode, page_number), "←", ll_row1, 1);
         }
 
         Button btAnswer = new Button(this);
+        Button btHint   = new Button(this);
         Button btResult = new Button(this);
-        setButtonOfAnswerWindow(btAnswer, new BtAnswerOnClickListener(), "絵を描く", lltmp, 2);
-        setButtonOfAnswerWindow(btResult, new BtResultOnClickListener(), "答え合わせ", lltmp, 2);
+
+        setButtonOfAnswerWindow(btAnswer, new BtAnswerOnClickListener(), "絵を描く", ll_row1, 2);
+
+        if(mode == Mode.Normal) {
+            setButtonOfAnswerWindow(btHint,
+                    new BtChangeModeOnClickListener(Mode.ShowHint),
+                    "ヒントちょうだい！", ll_row1, 2);
+        }
+        else if(mode == Mode.ShowHint){
+            setButtonOfAnswerWindow(btHint,
+                    new BtChangeModeOnClickListener(Mode.Normal),
+                    "ヒントをかくす", ll_row1, 2);
+        }
+
+        if(mode != Mode.ShowAnswer) {
+            setButtonOfAnswerWindow(btResult,
+                    new BtChangeModeOnClickListener(Mode.ShowAnswer),
+                    "答え合わせ", ll_row2, 2);
+        }
+        else
+        {
+            setButtonOfAnswerWindow(btResult,
+                    new BtChangeModeOnClickListener(Mode.Normal),
+                    "答えをかくす", ll_row2, 2);
+        }
 
         //全ページ数をデータベースのレコード数から算出 ToDo: もっと簡単な算出方法を検討する
         int numberOfPages = helper.getRecordCount() / 5;
@@ -135,14 +182,16 @@ public class AnswerActivity extends Activity
 
         //  □□□…□□□
         //        ↑のページかどうか調べる → そうだったらbtNewerは表示しない
-        if(!isCheckMode && page_number > 0 || isCheckMode && page_number < numberOfPages)
+        if((mode == Mode.Normal) && (page_number > 0)
+                || (mode != Mode.Normal) && (page_number < numberOfPages))
         {
             Button btNewer = new Button(this);
             setButtonOfAnswerWindow(btNewer,
-                    new BtNewerOnClickListener(isCheckMode, page_number), "→", lltmp, 1);
+                    new BtNewerOnClickListener(mode, page_number), "→", ll_row1, 1);
         }
 
-        ll.addView(lltmp);
+        ll.addView(ll_row1);
+        ll.addView(ll_row2);
     }
 
     private void setButtonOfAnswerWindow(Button bt, View.OnClickListener listener,
@@ -181,55 +230,63 @@ public class AnswerActivity extends Activity
     private class BtOlderOnClickListener implements View.OnClickListener
     {
         private int mPageNumber;
-        private boolean mCheckMode;
+        private Mode mMode;
 
-        BtOlderOnClickListener(boolean isCheckMode, int page_number)
+        BtOlderOnClickListener(Mode mode, int page_number)
         {
-            mCheckMode = isCheckMode;
+            mMode = mode;
             mPageNumber = page_number;
         }
 
         @Override
         public void onClick(View v)
         {
-            if(!mCheckMode)
+            if(mMode == Mode.Normal)
                 mPageNumber++;
             else
                 mPageNumber--;
-            setWindow(mCheckMode, mPageNumber);
+            setWindow(mMode, mPageNumber);
         }
     }
 
     private class BtNewerOnClickListener implements View.OnClickListener
     {
         private int mPageNumber;
-        private boolean mCheckMode;
+        private Mode mMode;
 
-        BtNewerOnClickListener(boolean isCheckMode, int page_number)
+        BtNewerOnClickListener(Mode mode, int page_number)
         {
-            mCheckMode = isCheckMode;
+            mMode = mode;
             mPageNumber = page_number;
         }
 
         @Override
         public void onClick(View v)
         {
-            if(!mCheckMode)
+            if(mMode == Mode.Normal)
                 mPageNumber--;
             else
                 mPageNumber++;
-            setWindow(mCheckMode, mPageNumber);
+            setWindow(mMode, mPageNumber);
         }
     }
 
-    private class BtResultOnClickListener implements View.OnClickListener
+    private class BtChangeModeOnClickListener implements View.OnClickListener
     {
+        private Mode  _Mode;
+
+        public BtChangeModeOnClickListener(Mode mode)
+        {
+            _Mode = mode;
+        }
+
         @Override
         public void onClick(View v)
         {
-            setWindow(/* チェックモードで実行 */true, 0);
+            setWindow(_Mode, 0);
         }
     }
+
 
     private class BtAnswerOnClickListener implements View.OnClickListener
     {

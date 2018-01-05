@@ -222,4 +222,30 @@ public class DBHelper extends SQLiteOpenHelper
         cursor.close();
         return title;
     }
+
+    public String getHiddenTitle(int key)
+    {
+        StringBuilder sb = new StringBuilder(getTitle(key));
+
+        // Hide last character.
+        sb.setCharAt(sb.length() - 1, '○');
+
+        int size_remained = sb.length() - 1;
+
+        if(size_remained < 1) return sb.toString();
+
+        // Hide half of remained characters randomly.
+        ArrayList<Integer> ids = new ArrayList<Integer>();
+
+        for (int i = 0; i < size_remained; i++) ids.add(i);
+
+        Collections.shuffle(ids);
+
+        for(int i = 0; i < ((size_remained + 1) / 2); i++)
+        {
+            sb.setCharAt(ids.get(i), '○');
+        }
+
+        return sb.toString();
+    }
 }
