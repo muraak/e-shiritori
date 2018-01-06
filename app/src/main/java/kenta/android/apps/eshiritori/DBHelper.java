@@ -241,7 +241,7 @@ public class DBHelper extends SQLiteOpenHelper
 
         Collections.shuffle(ids);
 
-        for(int i = 0; i < ((size_remained + 1) / 2); i++)
+        for(int i = 0; i < (size_remained / 2); i++)
         {
             sb.setCharAt(ids.get(i), '○');
         }
