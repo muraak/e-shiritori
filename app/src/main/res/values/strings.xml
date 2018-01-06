@@ -10,4 +10,6 @@
     <string name="OK_dialog_paint">OK</string>
     <string name="cancel_dialog_paint">Cancel</string>
     <string name="show_previous_pictures">これまでのえをみる</string>
+    <string name="Start">はじめから</string>
+    <string name="Continue">つづきから</string>
 </resources>

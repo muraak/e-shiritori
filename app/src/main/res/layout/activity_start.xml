@@ -1,0 +1,28 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".StartActivity"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/oliveDrab"
+    android:gravity="center_vertical">
+
+    <Button
+        android:id="@+id/btStart"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/selector_bt_paint"
+        android:layout_margin="10dp"
+        android:text="@string/Start"
+        android:textColor="@color/white"/>
+
+    <Button
+        android:id="@+id/btContinue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/selector_bt_paint"
+        android:layout_margin="10dp"
+        android:text="@string/Continue"
+        android:textColor="@color/white"/>
+
+</LinearLayout>
