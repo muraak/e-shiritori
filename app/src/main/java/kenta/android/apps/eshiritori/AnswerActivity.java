@@ -34,16 +34,22 @@ public class AnswerActivity extends Activity
         ShowHint
     }
 
+    enum InitialPos
+    {
+        TOP,
+        BOTTOM
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        this.setWindow(Mode.Normal, 0);
+        this.setWindow(Mode.Normal, 0, InitialPos.BOTTOM);
     }
 
-    private void setWindow(Mode mode, int page_number)
+    private void setWindow(Mode mode, int page_number, InitialPos pos)
     {
-        ScrollView sv = new ScrollView(this);
+        final ScrollView sv = new ScrollView(this);
         sv.setBackgroundColor(getResources().getColor(R.color.oliveDrab));
         super.setContentView(sv);
         LinearLayout ll = new LinearLayout(this);
@@ -79,10 +85,16 @@ public class AnswerActivity extends Activity
         ArrayList<Integer> ids = new ArrayList<>(5);
         ArrayList<Bitmap> pictures = new ArrayList<>(5);
 
-        if(mode == Mode.Normal)
+        if(mode == Mode.Normal || mode == Mode.ShowHint)
+        {
+            /* Get pictures from latest. */
             helper.getPictures(page_number, ids, pictures);
+        }
         else
+        {
+            /* Get pictures from oldest. */
             helper.getPicturesOfAnswer(page_number, ids, pictures);
+        }
 
         boolean isLastPage = false;
         //  □□□…□□□
@@ -184,8 +196,8 @@ public class AnswerActivity extends Activity
 
         //  □□□…□□□
         //        ↑のページかどうか調べる → そうだったらbtNewerは表示しない
-        if((mode == Mode.Normal) && (page_number > 0)
-                || (mode != Mode.Normal) && (page_number < numberOfPages))
+        if((mode == Mode.Normal || mode == Mode.ShowHint) && (page_number > 0)
+                || (mode == Mode.ShowAnswer) && (page_number < numberOfPages))
         {
             Button btNewer = new Button(this);
             setButtonOfAnswerWindow(btNewer,
@@ -194,6 +206,16 @@ public class AnswerActivity extends Activity
 
         ll.addView(ll_row1);
         ll.addView(ll_row2);
+
+        if(pos == InitialPos.BOTTOM)
+        {
+            sv.post(new Runnable() {
+                @Override
+                public void run() {
+                    sv.fullScroll(ScrollView.FOCUS_DOWN);
+                }
+            });
+        }
     }
 
     private void setButtonOfAnswerWindow(Button bt, View.OnClickListener listener,
@@ -243,11 +265,11 @@ public class AnswerActivity extends Activity
         @Override
         public void onClick(View v)
         {
-            if(mMode == Mode.Normal)
+            if(mMode == Mode.Normal || mMode == Mode.ShowHint)
                 mPageNumber++;
             else
                 mPageNumber--;
-            setWindow(mMode, mPageNumber);
+            setWindow(mMode, mPageNumber, InitialPos.BOTTOM);
         }
     }
 
@@ -265,11 +287,11 @@ public class AnswerActivity extends Activity
         @Override
         public void onClick(View v)
         {
-            if(mMode == Mode.Normal)
+            if(mMode == Mode.Normal || mMode == Mode.ShowHint)
                 mPageNumber--;
             else
                 mPageNumber++;
-            setWindow(mMode, mPageNumber);
+            setWindow(mMode, mPageNumber, InitialPos.TOP);
         }
     }
 
@@ -285,7 +307,10 @@ public class AnswerActivity extends Activity
         @Override
         public void onClick(View v)
         {
-            setWindow(_Mode, 0);
+            if(_Mode == Mode.Normal || _Mode == Mode.ShowHint)
+                setWindow(_Mode, 0, InitialPos.BOTTOM);
+            else
+                setWindow(_Mode, 0, InitialPos.TOP);
         }
     }
 
@@ -303,26 +328,26 @@ public class AnswerActivity extends Activity
         }
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)
-    {
-		/*********************************************
-		 * キーが押されたときに呼ばれるメソッドです. *
-		 * 何か処理を行ったときは"true"を返し        *
-		 * 何もしなかったときは"false"を返す         *
-		 * 決まりらしいです．                        *
-		 *********************************************/
-
-        //戻るボタンが押されたときの処理
-        if (keyCode == KeyEvent.KEYCODE_BACK)
-        {
-            this.clearDB();
-            this.finish();
-            return true;
-        }
-
-        return false;
-    }
+//    @Override
+//    public boolean onKeyDown(int keyCode, KeyEvent event)
+//    {
+//		/*********************************************
+//		 * キーが押されたときに呼ばれるメソッドです. *
+//		 * 何か処理を行ったときは"true"を返し        *
+//		 * 何もしなかったときは"false"を返す         *
+//		 * 決まりらしいです．                        *
+//		 *********************************************/
+//
+//        //戻るボタンが押されたときの処理
+//        if (keyCode == KeyEvent.KEYCODE_BACK)
+//        {
+//            this.clearDB();
+//            this.finish();
+//            return true;
+//        }
+//
+//        return false;
+//    }
 
     private void clearDB()
     {

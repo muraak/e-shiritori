@@ -75,26 +75,26 @@ public class MainActivity extends Activity
         super.onCreate(savedInstanceState);
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)
-    {
-        /*********************************************
-         * キーが押されたときに呼ばれるメソッドです.      *
-         * 何か処理を行ったときは"true"を返し           *
-         * 何もしなかったときは"false"を返す            *
-         * 決まりらしいです．                           *
-         *********************************************/
-
-        //戻るボタンが押されたときの処理
-        if (keyCode == KeyEvent.KEYCODE_BACK)
-        {
-            this.clearDB();
-            this.finish();
-            return true;
-        }
-
-        return false;
-    }
+//    @Override
+//    public boolean onKeyDown(int keyCode, KeyEvent event)
+//    {
+//        /*********************************************
+//         * キーが押されたときに呼ばれるメソッドです.      *
+//         * 何か処理を行ったときは"true"を返し           *
+//         * 何もしなかったときは"false"を返す            *
+//         * 決まりらしいです．                           *
+//         *********************************************/
+//
+//        //戻るボタンが押されたときの処理
+//        if (keyCode == KeyEvent.KEYCODE_BACK)
+//        {
+//            this.clearDB();
+//            this.finish();
+//            return true;
+//        }
+//
+//        return false;
+//    }
 
     private ShadowView makeShadowView()
     {
