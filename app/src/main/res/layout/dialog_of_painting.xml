@@ -24,7 +24,7 @@
             android:layout_marginTop="10dp"
             android:layout_marginLeft="4dp"
             android:layout_marginRight="4dp"
-            android:inputType="text" />
+            android:inputType="textVisiblePassword"/>
 
         <LinearLayout android:orientation="horizontal"
             android:layout_gravity="center_horizontal"

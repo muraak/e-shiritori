@@ -7,17 +7,26 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.security.KeyRep;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static android.view.inputmethod.InputMethodManager.HIDE_IMPLICIT_ONLY;
 
 /**
  * Created by Kenta on 2015/05/02.
@@ -30,7 +39,7 @@ public class DialogOfPainting extends DialogFragment
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState)
     {
-        Dialog dialog = new Dialog(getActivity());
+        final Dialog dialog = new Dialog(getActivity());
         // タイトル非表示
         dialog.getWindow().requestFeature(Window.FEATURE_NO_TITLE);
         // フルスクリーン
