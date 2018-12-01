@@ -78,6 +78,8 @@ public class DialogOfPainting extends DialogFragment
         public void onClick(View v)
         {
             EditText editTitle = (EditText) mDialog.findViewById(R.id.editTitle);
+            // this is the magic for disable suggestion on IME
+            editTitle.setInputType(editTitle.getInputType() | 524288);
             String title	= editTitle.getText().toString();
 
             // タイトルが入力されているかをチェック
@@ -85,9 +87,11 @@ public class DialogOfPainting extends DialogFragment
             {
                 makeCustomToast("何か入力してね!",
                         getActivity().getApplicationContext());
-//                Log.d("KMShiritori", "Title was not inputed!");
                 return;
             }
+
+            // remove white space automatically.
+            title = title.replaceAll("\\s", "");
 
             //入力文字列がひらがな or "ー" or 全角カタカナ か調べるための準備
             String regfilter = "^[ぁ-んーァ-ヶ]+$";
